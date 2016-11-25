@@ -62,20 +62,27 @@ public class HomeController extends Controller {
         Form<Product> newProductForm = formFactory.form(Product.class).bindFromRequest();
 
         // Check for errors (based on Product class annotations)
-        if(newProductForm.hasErrors()) {
+        if (newProductForm.hasErrors()) {
             // Display the form again
             return badRequest(addProduct.render(newProductForm));
         }
 
         // Extract the product from the form object
-        Product newProduct = newProductForm.get();
+        Product p = newProductForm.get();
 
-        // Save to the database via Ebean (remember Product extends Model)
-        newProduct.save();
+        if (p.getId() == null) {
+            //Save to the datebase via Ebean (remember Product extends Model)
+            p.save();
+        }
+
+        //Product already exists so update
+        else if (p.getId() != null) {
+            p.update();
+        }
 
         // Set a success message in temporary flash
         // for display in return view
-        flash("success", "Product " + newProduct.getName() + " has been created");
+        flash("success", "Product " + p.getName() + " has been created");
 
         // Redirect to the admin home
         return redirect(controllers.routes.HomeController.products());
@@ -91,5 +98,25 @@ public class HomeController extends Controller {
 
         // Redirect to products page
         return redirect(routes.HomeController.products());
+    }
+
+    @Transactional
+    public Result updateProduct(Long id) {
+        Product p;
+        Form<Product> productForm;
+
+        try {
+            //Find the product by id
+            p = Product.find.byId(id);
+
+            //Create a form based on the Product class and fill using p
+            productForm = formFactory.form(Product.class).fill(p);
+
+        } catch (Exception ex) {
+            //Display an error message or page
+            return badRequest("error");
+        }
+        //Render the updateProduct view - pass form as parameter
+        return ok(addProduct().render(productForm));
     }
 }
